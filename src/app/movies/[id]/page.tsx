@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { getMovie, proxiedPosterUrl } from "@/lib/mediaProxy";
 import { prisma } from "@/lib/prisma";
-import { updateMovieRating } from "@/app/library/actions";
+import { StarRating } from "./StarRating";
 
 function formatRuntime(minutes: number | null) {
   if (!minutes) return null;
@@ -26,6 +26,9 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
 
   const rating = await prisma.movieRating.findUnique({ where: { jellyfinItemId: id } });
   const poster = proxiedPosterUrl(movie.poster);
+
+  const johnRating = rating?.johnRating != null ? Number(rating.johnRating) : null;
+  const airaRating = rating?.airaRating != null ? Number(rating.airaRating) : null;
 
   return (
     <main className="shell">
@@ -66,37 +69,20 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
           )}
 
           <div className="ratings-section">
-            <h3>Ratings</h3>
-            <form className="rating-form" action={updateMovieRating}>
-              <input type="hidden" name="jellyfinItemId" value={id} />
-              <label>
-                John
-                <input
-                  name="johnRating"
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="0.5"
-                  inputMode="decimal"
-                  defaultValue={rating?.johnRating?.toString() ?? ""}
-                  placeholder="—"
-                />
-              </label>
-              <label>
-                Aira
-                <input
-                  name="airaRating"
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="0.5"
-                  inputMode="decimal"
-                  defaultValue={rating?.airaRating?.toString() ?? ""}
-                  placeholder="—"
-                />
-              </label>
-              <button type="submit">Save</button>
-            </form>
+            <div className="ratings-grid">
+              <StarRating
+                jellyfinItemId={id}
+                field="johnRating"
+                initialValue={johnRating}
+                label="John"
+              />
+              <StarRating
+                jellyfinItemId={id}
+                field="airaRating"
+                initialValue={airaRating}
+                label="Aira"
+              />
+            </div>
           </div>
         </div>
       </div>

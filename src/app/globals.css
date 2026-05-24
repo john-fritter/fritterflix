@@ -38,8 +38,14 @@ button, input, select { font: inherit; }
 .error { color: #fca5a5; background: rgba(127, 29, 29, .35); border: 1px solid rgba(248, 113, 113, .35); border-radius: 12px; padding: 10px 12px; }
 
 /* Meta pills */
-.meta { display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); margin-bottom: 24px; }
+.meta { display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); margin-bottom: 16px; }
 .pill { border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; background: rgba(24,24,27,.72); }
+
+/* Sort chips */
+.sort-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.sort-chip { border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px; background: rgba(24,24,27,.72); color: var(--muted); font-size: .85rem; transition: color 0.12s, border-color 0.12s; }
+.sort-chip:hover { color: var(--text); border-color: var(--muted); }
+.sort-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(249,115,22,.08); }
 
 /* Library grid */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
@@ -74,13 +80,25 @@ button, input, select { font: inherit; }
 .genre-tag { border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: .78rem; color: var(--muted); }
 .unwatched-badge { display: inline-flex; color: #fed7aa; font-size: .82rem; margin-bottom: 20px; }
 .ratings-section { border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--panel); margin-top: 8px; }
-.ratings-section h3 { margin: 0 0 16px; font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.ratings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 
-/* Rating form (used on detail page) */
-.rating-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 8px; }
-.rating-form label { display: grid; gap: 4px; color: var(--muted); font-size: .78rem; }
-.rating-form input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; background: #0f0f12; color: var(--text); }
-.rating-form button { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: #fafafa; color: #111; font-weight: 800; cursor: pointer; }
+/* Star ratings */
+.star-rating { display: flex; flex-direction: column; gap: 8px; }
+.star-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+.stars { display: flex; }
+.stars.pending { opacity: 0.45; pointer-events: none; }
+.star { position: relative; width: 34px; height: 34px; display: inline-block; flex-shrink: 0; }
+.star::before,
+.star::after { content: "★"; position: absolute; inset: 0; font-size: 28px; line-height: 34px; text-align: center; pointer-events: none; }
+.star::before { color: var(--border); }
+.star::after { color: var(--accent); }
+.star-0::after { clip-path: inset(0 100% 0 0); }
+.star-1::after { clip-path: inset(0 50% 0 0); }
+.star-2::after { clip-path: none; }
+.star-btn { position: absolute; top: 0; bottom: 0; width: 50%; background: none; border: none; cursor: pointer; padding: 0; z-index: 1; }
+.star-btn.left { left: 0; }
+.star-btn.right { right: 0; }
+.star-value { font-size: .8rem; color: var(--muted); }
 
 /* Wheel page */
 .wheel-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; max-width: 640px; }

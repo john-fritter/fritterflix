@@ -1,16 +1,29 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { getLibrary, proxiedPosterUrl } from "@/lib/mediaProxy";
+import { getLibrary, proxiedPosterUrl, validSort } from "@/lib/mediaProxy";
 import { prisma } from "@/lib/prisma";
 import { toggleWheelCandidate } from "./actions";
 
-export default async function LibraryPage() {
+const SORT_LABELS: Record<string, string> = {
+  recently_added: "Recently added",
+  title: "Title A–Z",
+  year: "Year (newest)",
+};
+
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect("/login");
 
+  const { sort: rawSort } = await searchParams;
+  const sort = validSort(rawSort);
+
   const [library, candidates] = await Promise.all([
-    getLibrary(72),
-    prisma.wheelCandidate.findMany({ select: { jellyfinItemId: true } })
+    getLibrary(1000, sort),
+    prisma.wheelCandidate.findMany({ select: { jellyfinItemId: true } }),
   ]);
 
   const candidateSet = new Set(candidates.map((c) => c.jellyfinItemId));
@@ -24,7 +37,7 @@ export default async function LibraryPage() {
         </div>
         <nav className="header-nav">
           <a href="/wheel" className="nav-link">
-            Wheel {candidateSet.size > 0 ? `(${candidateSet.size})` : ""}
+            Wheel{candidateSet.size > 0 ? ` (${candidateSet.size})` : ""}
           </a>
           <form action="/api/auth/logout" method="post">
             <button className="logout" type="submit">Logout</button>
@@ -34,7 +47,20 @@ export default async function LibraryPage() {
 
       <div className="meta">
         <span className="pill">{library.total} movies from Jellyfin</span>
-        <span className="pill">unwatched-first · recently-added</span>
+        <span className="pill">{library.items.length} shown</span>
+      </div>
+
+      <div className="sort-chips" role="group" aria-label="Sort order">
+        {Object.entries(SORT_LABELS).map(([value, label]) => (
+          <a
+            key={value}
+            href={`?sort=${value}`}
+            className={`sort-chip${sort === value ? " active" : ""}`}
+            aria-current={sort === value ? "page" : undefined}
+          >
+            {label}
+          </a>
+        ))}
       </div>
 
       {library.warning ? <p className="error">{library.warning}</p> : null}
