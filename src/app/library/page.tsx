@@ -22,7 +22,7 @@ export default async function LibraryPage({
   const sort = validSort(rawSort);
 
   const [library, candidates] = await Promise.all([
-    getLibrary(1000, sort),
+    getLibrary(sort),
     prisma.wheelCandidate.findMany({ select: { jellyfinItemId: true } }),
   ]);
 
@@ -47,7 +47,6 @@ export default async function LibraryPage({
 
       <div className="meta">
         <span className="pill">{library.total} movies from Jellyfin</span>
-        <span className="pill">{library.items.length} shown</span>
       </div>
 
       <div className="sort-chips" role="group" aria-label="Sort order">
