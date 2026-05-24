@@ -28,6 +28,13 @@ function mediaProxyBaseUrl() {
   return baseUrl.replace(/\/$/, "");
 }
 
+export async function getMovie(id: string): Promise<LibraryMovie> {
+  const url = `${mediaProxyBaseUrl()}/api/media/items/${encodeURIComponent(id)}`;
+  const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`media-proxy item ${id} failed: ${response.status}`);
+  return response.json();
+}
+
 export async function getLibrary(limit = 60): Promise<LibraryResponse> {
   const url = new URL(`${mediaProxyBaseUrl()}/api/media/library`);
   url.searchParams.set("limit", String(limit));

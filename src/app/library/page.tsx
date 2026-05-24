@@ -2,35 +2,39 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { getLibrary, proxiedPosterUrl } from "@/lib/mediaProxy";
 import { prisma } from "@/lib/prisma";
-import { updateMovieRating } from "./actions";
+import { toggleWheelCandidate } from "./actions";
 
 export default async function LibraryPage() {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const library = await getLibrary(72);
-  const movieIds = library.items.map((movie) => movie.id).filter((id): id is string => Boolean(id));
-  const ratings = await prisma.movieRating.findMany({
-    where: { jellyfinItemId: { in: movieIds } }
-  });
-  const ratingsByMovieId = new Map(ratings.map((rating) => [rating.jellyfinItemId, rating]));
+  const [library, candidates] = await Promise.all([
+    getLibrary(72),
+    prisma.wheelCandidate.findMany({ select: { jellyfinItemId: true } })
+  ]);
+
+  const candidateSet = new Set(candidates.map((c) => c.jellyfinItemId));
 
   return (
     <main className="shell">
       <header className="header">
         <div className="brand">
           <h1>Fritterflix</h1>
-          <p>Signed in as {user}. Movies only. Unwatched first, recently added next.</p>
+          <p>Signed in as {user}.</p>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button className="logout" type="submit">Logout</button>
-        </form>
+        <nav className="header-nav">
+          <a href="/wheel" className="nav-link">
+            Wheel {candidateSet.size > 0 ? `(${candidateSet.size})` : ""}
+          </a>
+          <form action="/api/auth/logout" method="post">
+            <button className="logout" type="submit">Logout</button>
+          </form>
+        </nav>
       </header>
 
       <div className="meta">
         <span className="pill">{library.total} movies from Jellyfin</span>
-        <span className="pill">source: media-proxy</span>
-        <span className="pill">sort: unwatched-first / recently-added</span>
+        <span className="pill">unwatched-first · recently-added</span>
       </div>
 
       {library.warning ? <p className="error">{library.warning}</p> : null}
@@ -38,52 +42,39 @@ export default async function LibraryPage() {
       <section className="grid" aria-label="Movie library">
         {library.items.map((movie) => {
           const poster = proxiedPosterUrl(movie.poster);
-          const rating = movie.id ? ratingsByMovieId.get(movie.id) : null;
+          const isCandidate = movie.id ? candidateSet.has(movie.id) : false;
           return (
             <article className="movie-card" key={movie.id ?? movie.title}>
-              <div className="poster">
+              <a
+                href={movie.id ? `/movies/${movie.id}` : undefined}
+                className="poster-link"
+                aria-label={movie.title}
+              >
                 {poster ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- posters are already proxied/cached by media-proxy for this slice.
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={poster} alt={`${movie.title} poster`} loading="lazy" />
-                ) : <span>No poster</span>}
-              </div>
-              <div className="movie-body">
-                <h2 className="movie-title">{movie.title}</h2>
-                <p className="movie-year">{movie.year ?? "Unknown year"}</p>
-                {!movie.user_data.played ? <span className="badge">Unwatched</span> : null}
-                {movie.id ? (
-                  <form className="rating-form" action={updateMovieRating}>
-                    <input type="hidden" name="jellyfinItemId" value={movie.id} />
-                    <label>
-                      John
-                      <input
-                        name="johnRating"
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        inputMode="decimal"
-                        defaultValue={rating?.johnRating?.toString() ?? ""}
-                        placeholder="-"
-                      />
-                    </label>
-                    <label>
-                      Aira
-                      <input
-                        name="airaRating"
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        inputMode="decimal"
-                        defaultValue={rating?.airaRating?.toString() ?? ""}
-                        placeholder="-"
-                      />
-                    </label>
-                    <button type="submit">Save</button>
-                  </form>
-                ) : null}
-              </div>
+                ) : (
+                  <span className="no-poster">No poster</span>
+                )}
+                <div className="card-hover-info" aria-hidden="true">
+                  <span className="card-title">{movie.title}</span>
+                  {movie.year && <span className="card-year">{movie.year}</span>}
+                </div>
+              </a>
+              {movie.id && (
+                <form className="badge-form" action={toggleWheelCandidate}>
+                  <input type="hidden" name="jellyfinItemId" value={movie.id} />
+                  <input type="hidden" name="title" value={movie.title} />
+                  <input type="hidden" name="poster" value={poster ?? ""} />
+                  <button
+                    type="submit"
+                    className={`plus-badge${isCandidate ? " active" : ""}`}
+                    aria-label={isCandidate ? "Remove from wheel" : "Add to wheel"}
+                  >
+                    {isCandidate ? "✓" : "+"}
+                  </button>
+                </form>
+              )}
             </article>
           );
         })}

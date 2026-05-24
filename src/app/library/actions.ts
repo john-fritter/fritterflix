@@ -38,4 +38,27 @@ export async function updateMovieRating(formData: FormData) {
   });
 
   revalidatePath("/library");
+  revalidatePath(`/movies/${jellyfinItemId}`);
+}
+
+export async function toggleWheelCandidate(formData: FormData) {
+  const user = await currentUser();
+  if (!user) redirect("/login");
+
+  const jellyfinItemId = String(formData.get("jellyfinItemId") ?? "").trim();
+  if (!jellyfinItemId) throw new Error("Missing Jellyfin item id.");
+
+  const title = String(formData.get("title") ?? "").trim();
+  const poster = String(formData.get("poster") ?? "").trim() || null;
+
+  const existing = await prisma.wheelCandidate.findUnique({ where: { jellyfinItemId } });
+
+  if (existing) {
+    await prisma.wheelCandidate.delete({ where: { jellyfinItemId } });
+  } else {
+    await prisma.wheelCandidate.create({ data: { jellyfinItemId, title, poster } });
+  }
+
+  revalidatePath("/library");
+  revalidatePath("/wheel");
 }
