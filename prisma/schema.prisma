@@ -21,3 +21,10 @@ model MovieRating {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+model WheelCandidate {
+  jellyfinItemId String   @id
+  title          String
+  poster         String?
+  addedAt        DateTime @default(now())
+}
