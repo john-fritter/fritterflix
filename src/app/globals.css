@@ -37,6 +37,12 @@ button, input, select { font: inherit; }
 .primary { border: 0; border-radius: 14px; padding: 12px 16px; background: var(--accent); color: #111; font-weight: 800; cursor: pointer; }
 .error { color: #fca5a5; background: rgba(127, 29, 29, .35); border: 1px solid rgba(248, 113, 113, .35); border-radius: 12px; padding: 10px 12px; }
 
+/* Search bar */
+.search-bar { margin-bottom: 16px; }
+.search-input { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; background: #0f0f12; color: var(--text); font-size: .95rem; }
+.search-input::placeholder { color: var(--muted); }
+.search-input:focus { outline: none; border-color: var(--accent); }
+
 /* Meta pills */
 .meta { display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); margin-bottom: 16px; }
 .pill { border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; background: rgba(24,24,27,.72); }
