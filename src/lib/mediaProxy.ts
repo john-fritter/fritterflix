@@ -150,7 +150,7 @@ export function proxiedPosterUrl(poster: string | null) {
 }
 
 export async function getRecentlyWatched(): Promise<RecentlyWatchedResponse> {
-  const url = `${mediaProxyBaseUrl()}/api/media/recently-watched`;
+  const url = `${mediaProxyBaseUrl()}/api/media/recently-watched?type=movie`;
   const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`media-proxy recently-watched failed: ${response.status}`);
   return response.json();
