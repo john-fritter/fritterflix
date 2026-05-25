@@ -9,11 +9,11 @@ export async function removeWheelCandidate(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const jellyfinItemId = String(formData.get("jellyfinItemId") ?? "").trim();
-  if (!jellyfinItemId) throw new Error("Missing Jellyfin item id.");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing id.");
 
-  await prisma.wheelCandidate.delete({ where: { jellyfinItemId } });
+  await prisma.wheelCandidate.delete({ where: { id } });
 
   revalidatePath("/wheel");
-  revalidatePath("/library");
+  revalidatePath("/movies");
 }

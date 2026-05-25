@@ -15,16 +15,21 @@ model User {
 }
 
 model MovieRating {
-  jellyfinItemId String   @id
-  johnRating     Decimal? @db.Decimal(3, 1)
-  airaRating     Decimal? @db.Decimal(3, 1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  jellyfinItemId   String   @id
+  johnRating       Decimal? @db.Decimal(3, 1)
+  airaRating       Decimal? @db.Decimal(3, 1)
+  hiddenFromRecent Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model WheelCandidate {
-  jellyfinItemId String   @id
-  title          String
-  poster         String?
-  addedAt        DateTime @default(now())
+  id         String   @id @default(cuid())
+  source     String
+  externalId String
+  title      String
+  poster     String?
+  addedAt    DateTime @default(now())
+
+  @@unique([source, externalId])
 }
