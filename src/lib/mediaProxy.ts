@@ -11,6 +11,24 @@ export type LibraryMovie = {
   user_data: { played: boolean; play_count: number; last_played_at: number | null; is_favorite: boolean };
 };
 
+export type MediaSearchState = "in_library" | "requested" | "available";
+
+export type MediaSearchItem = {
+  id: string | null;
+  title: string;
+  year: number | null;
+  media_type: "movie";
+  provider_ids: { tmdb: string | null; imdb: string | null };
+  poster: string | null;
+  library_state: MediaSearchState;
+};
+
+export type MediaSearchResponse = {
+  items: MediaSearchItem[];
+  q: string;
+  source: string;
+};
+
 export type LibraryResponse = {
   items: LibraryMovie[];
   total: number;
@@ -109,6 +127,15 @@ async function fetchLibraryPage(startIndex: number, limit: number, sort: Library
 
 export async function getLibrary(sort: LibrarySort = "recently_added"): Promise<LibraryResponse> {
   return getPagedLibrary((startIndex, limit) => fetchLibraryPage(startIndex, limit, sort));
+}
+
+export async function getMediaSearch(q: string): Promise<MediaSearchResponse> {
+  const url = new URL(`${mediaProxyBaseUrl()}/api/media/search`);
+  url.searchParams.set("q", q);
+
+  const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`media-proxy search failed: ${response.status}`);
+  return response.json();
 }
 
 export function proxiedPosterUrl(poster: string | null) {
