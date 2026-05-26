@@ -15,7 +15,8 @@ model User {
 }
 
 model MovieRating {
-  jellyfinItemId   String   @id
+  movieId          String   @id        // "tmdb:NNN" or Jellyfin GUID as fallback
+  jellyfinItemId   String?  @unique    // kept for backfill reference
   johnRating       Decimal? @db.Decimal(3, 1)
   airaRating       Decimal? @db.Decimal(3, 1)
   hiddenFromRecent Boolean  @default(false)

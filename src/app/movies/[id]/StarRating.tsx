@@ -4,13 +4,13 @@ import { useState, useTransition } from "react";
 import { saveStarRating } from "./actions";
 
 type Props = {
-  jellyfinItemId: string;
+  movieId: string;
   field: "johnRating" | "airaRating";
   initialValue: number | null; // 1–10 stored value, null = unrated
   label: string;
 };
 
-export function StarRating({ jellyfinItemId, field, initialValue, label }: Props) {
+export function StarRating({ movieId, field, initialValue, label }: Props) {
   const [saved, setSaved] = useState(initialValue);
   const [hovered, setHovered] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -21,7 +21,7 @@ export function StarRating({ jellyfinItemId, field, initialValue, label }: Props
     const next = value === saved ? null : value;
     setSaved(next);
     startTransition(async () => {
-      await saveStarRating(jellyfinItemId, field, next);
+      await saveStarRating(movieId, field, next);
     });
   }
 

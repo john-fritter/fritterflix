@@ -10,7 +10,8 @@
     "lint": "eslint .", 
     "test:pagination": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/mediaProxyPagination.test.mjs",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "db:backfill-tmdb": "tsx scripts/backfill-tmdb-ids.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

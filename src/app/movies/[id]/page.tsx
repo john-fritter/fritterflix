@@ -25,8 +25,13 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
     notFound();
   }
 
+  // Prefer TMDB ID as the stable rating key; fall back to route param (Jellyfin GUID or tmdb: prefix)
+  const effectiveMovieId = movie.provider_ids?.tmdb
+    ? `tmdb:${movie.provider_ids.tmdb}`
+    : id;
+
   const [rating, candidateCount] = await Promise.all([
-    prisma.movieRating.findUnique({ where: { jellyfinItemId: id } }),
+    prisma.movieRating.findUnique({ where: { movieId: effectiveMovieId } }),
     prisma.wheelCandidate.count(),
   ]);
 
@@ -70,13 +75,13 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
           <div className="ratings-section">
             <div className="ratings-grid">
               <StarRating
-                jellyfinItemId={id}
+                movieId={effectiveMovieId}
                 field="johnRating"
                 initialValue={johnRating}
                 label="John"
               />
               <StarRating
-                jellyfinItemId={id}
+                movieId={effectiveMovieId}
                 field="airaRating"
                 initialValue={airaRating}
                 label="Aira"

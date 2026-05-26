@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { getLibrary, getRecentlyWatched, validSort } from "@/lib/mediaProxy";
+import { getLibrary, getAllRecentlyWatched, validSort } from "@/lib/mediaProxy";
 import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/Header";
 import { toggleWheelCandidate, hideFromRecent } from "./actions";
@@ -28,28 +28,34 @@ export default async function MoviesPage({
 
   let recentlyWatched: LibraryMovie[] = [];
   try {
-    const rwResponse = await getRecentlyWatched();
-    const recentItems = rwResponse.items ?? [];
+    const recentItems = await getAllRecentlyWatched();
 
-    const recentIds = recentItems
-      .map((m) => m.id)
-      .filter((id): id is string => Boolean(id));
+    // Compute stable movieId for each item (tmdb:NNN preferred, Jellyfin GUID fallback)
+    const movieIdForItem = new Map<string, string>();
+    const movieIds: string[] = [];
+    for (const item of recentItems) {
+      if (!item.id) continue;
+      const tmdb = item.provider_ids?.tmdb;
+      const movieId = tmdb ? `tmdb:${tmdb}` : item.id;
+      movieIdForItem.set(item.id, movieId);
+      movieIds.push(movieId);
+    }
 
     const ratings = await prisma.movieRating.findMany({
-      where: { jellyfinItemId: { in: recentIds } },
-      select: { jellyfinItemId: true, johnRating: true, airaRating: true, hiddenFromRecent: true },
+      where: { movieId: { in: movieIds } },
+      select: { movieId: true, johnRating: true, airaRating: true, hiddenFromRecent: true },
     });
-    const ratingMap = new Map(ratings.map((r) => [r.jellyfinItemId, r]));
+    const ratingMap = new Map(ratings.map((r) => [r.movieId, r]));
 
-    recentlyWatched = recentItems
-      .filter((m) => {
-        if (!m.id) return false;
-        const r = ratingMap.get(m.id);
-        if (r?.hiddenFromRecent) return false;
-        if (r?.johnRating != null || r?.airaRating != null) return false;
-        return true;
-      })
-      .slice(0, 12);
+    recentlyWatched = recentItems.filter((m) => {
+      if (!m.id) return false;
+      const movieId = movieIdForItem.get(m.id);
+      if (!movieId) return false;
+      const r = ratingMap.get(movieId);
+      if (r?.hiddenFromRecent) return false;
+      if (r?.johnRating != null || r?.airaRating != null) return false;
+      return true;
+    });
   } catch {
     // recently-watched endpoint unavailable; section is omitted
   }
