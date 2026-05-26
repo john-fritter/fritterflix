@@ -40,6 +40,11 @@ export type LibraryResponse = {
   warning?: string;
 };
 
+export type RecentlyWatchedResponse = {
+  items: LibraryMovie[];
+  total?: number;
+};
+
 function mediaProxyBaseUrl() {
   const baseUrl = process.env.MEDIA_PROXY_BASE_URL;
   if (!baseUrl) throw new Error("MEDIA_PROXY_BASE_URL is required");
@@ -142,6 +147,13 @@ export function proxiedPosterUrl(poster: string | null) {
   if (!poster) return null;
   if (poster.startsWith("/api/media/")) return poster;
   return poster;
+}
+
+export async function getRecentlyWatched(): Promise<RecentlyWatchedResponse> {
+  const url = `${mediaProxyBaseUrl()}/api/media/recently-watched?type=movie`;
+  const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`media-proxy recently-watched failed: ${response.status}`);
+  return response.json();
 }
 
 export function mediaProxyUrlForPath(path: string, search: string) {

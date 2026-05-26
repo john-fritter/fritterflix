@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { proxiedPosterUrl } from "@/lib/mediaProxy";
+import { Header } from "@/components/Header";
 import { removeWheelCandidate } from "./actions";
 
 export default async function WheelPage() {
@@ -12,38 +13,32 @@ export default async function WheelPage() {
 
   return (
     <main className="shell">
-      <header className="header">
-        <div className="brand">
-          <h1>Wheel</h1>
-          <p>{candidates.length} {candidates.length === 1 ? "candidate" : "candidates"} in the pool</p>
-        </div>
-        <nav className="header-nav">
-          <a href="/library" className="nav-link">← Library</a>
-          <form action="/api/auth/logout" method="post">
-            <button className="logout" type="submit">Logout</button>
-          </form>
-        </nav>
-      </header>
+      <Header user={user} activePage="wheel" candidateCount={candidates.length} />
 
       {candidates.length === 0 ? (
         <p style={{ color: "var(--muted)" }}>
-          No candidates yet. Use the + badge on library cards to add movies to the wheel.
+          No candidates yet. Use the + badge on movie cards to add movies to the wheel.
         </p>
       ) : (
         <ul className="wheel-list">
           {candidates.map((c) => {
             const poster = proxiedPosterUrl(c.poster);
+            const href = c.source === "jellyfin" ? `/movies/${c.externalId}` : null;
             return (
-              <li key={c.jellyfinItemId} className="wheel-item">
+              <li key={c.id} className="wheel-item">
                 {poster ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={poster} alt={`${c.title} poster`} className="wheel-poster" />
                 ) : (
                   <div className="wheel-poster no-poster" />
                 )}
-                <a href={`/movies/${c.jellyfinItemId}`} className="wheel-title">{c.title}</a>
+                {href ? (
+                  <a href={href} className="wheel-title">{c.title}</a>
+                ) : (
+                  <span className="wheel-title">{c.title}</span>
+                )}
                 <form action={removeWheelCandidate}>
-                  <input type="hidden" name="jellyfinItemId" value={c.jellyfinItemId} />
+                  <input type="hidden" name="id" value={c.id} />
                   <button type="submit" className="remove-btn">Remove</button>
                 </form>
               </li>

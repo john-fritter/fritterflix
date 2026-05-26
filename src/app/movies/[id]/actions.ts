@@ -31,4 +31,5 @@ export async function saveStarRating(
   });
 
   revalidatePath(`/movies/${jellyfinItemId}`);
+  revalidatePath("/movies");
 }

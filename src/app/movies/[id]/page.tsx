@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { getMovie, proxiedPosterUrl } from "@/lib/mediaProxy";
 import { prisma } from "@/lib/prisma";
+import { Header } from "@/components/Header";
 import { StarRating } from "./StarRating";
 
 function formatRuntime(minutes: number | null) {
@@ -24,20 +25,18 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  const rating = await prisma.movieRating.findUnique({ where: { jellyfinItemId: id } });
-  const poster = proxiedPosterUrl(movie.poster);
+  const [rating, candidateCount] = await Promise.all([
+    prisma.movieRating.findUnique({ where: { jellyfinItemId: id } }),
+    prisma.wheelCandidate.count(),
+  ]);
 
+  const poster = proxiedPosterUrl(movie.poster);
   const johnRating = rating?.johnRating != null ? Number(rating.johnRating) : null;
   const airaRating = rating?.airaRating != null ? Number(rating.airaRating) : null;
 
   return (
     <main className="shell">
-      <header className="header">
-        <a href="/library" className="back-link">← Library</a>
-        <form action="/api/auth/logout" method="post">
-          <button className="logout" type="submit">Logout</button>
-        </form>
-      </header>
+      <Header user={user} activePage="movies" candidateCount={candidateCount} />
 
       <div className="detail-layout">
         <div className="detail-poster">
