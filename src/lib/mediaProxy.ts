@@ -156,6 +156,40 @@ export async function getRecentlyWatched(): Promise<RecentlyWatchedResponse> {
   return response.json();
 }
 
+const RECENTLY_WATCHED_PAGE_LIMIT = 20;
+const RECENTLY_WATCHED_MAX_PAGES = 50;
+
+export async function getAllRecentlyWatched(): Promise<LibraryMovie[]> {
+  const baseUrl = mediaProxyBaseUrl();
+  const allItems: LibraryMovie[] = [];
+  let startIndex = 0;
+  let total: number | null = null;
+
+  for (let page = 0; page < RECENTLY_WATCHED_MAX_PAGES; page++) {
+    const url = new URL(`${baseUrl}/api/media/recently-watched`);
+    url.searchParams.set("type", "movie");
+    url.searchParams.set("limit", String(RECENTLY_WATCHED_PAGE_LIMIT));
+    url.searchParams.set("start_index", String(startIndex));
+
+    const response = await fetch(url.toString(), {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error(`media-proxy recently-watched failed: ${response.status}`);
+
+    const data: RecentlyWatchedResponse = await response.json();
+    const items = data.items ?? [];
+    allItems.push(...items);
+
+    if (total === null && data.total != null) total = data.total;
+    if (items.length === 0) break;
+    if (total !== null && allItems.length >= total) break;
+    startIndex += items.length;
+  }
+
+  return allItems;
+}
+
 export function mediaProxyUrlForPath(path: string, search: string) {
   return `${mediaProxyBaseUrl()}${path}${search}`;
 }

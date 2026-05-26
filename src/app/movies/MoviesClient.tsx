@@ -25,6 +25,12 @@ type UnifiedMovie = (LibraryMovie | MediaSearchItem) & {
   library_state?: MediaSearchState;
 };
 
+function computeMovieId(movie: LibraryMovie): string | null {
+  const tmdb = movie.provider_ids?.tmdb;
+  if (tmdb) return `tmdb:${tmdb}`;
+  return movie.id ?? null;
+}
+
 export function MoviesClient({
   items,
   total,
@@ -43,6 +49,39 @@ export function MoviesClient({
   const [openRequestMenuFor, setOpenRequestMenuFor] = useState<string | null>(null);
   const candidateSet = new Set(candidateKeys);
   const requestMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Horizontal scroller state for "Rate these" section
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function updateArrows() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    const ro = new ResizeObserver(updateArrows);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      ro.disconnect();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentlyWatched.length]);
+
+  function handleScrollLeft() {
+    scrollRef.current?.scrollBy({ left: -(130 + 12) * 3, behavior: "smooth" });
+  }
+  function handleScrollRight() {
+    scrollRef.current?.scrollBy({ left: (130 + 12) * 3, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (!query.trim()) return;
@@ -142,6 +181,17 @@ export function MoviesClient({
     }
     const tmdbId = (movie as MediaSearchItem).provider_ids?.tmdb;
     return tmdbId ? `tmdb:${tmdbId}` : null;
+  }
+
+  // Returns the detail page URL for a movie (library or TMDB search result)
+  function movieDetailUrl(movie: UnifiedMovie): string | null {
+    const state = movie.library_state ?? "in_library";
+    if (state === "in_library" && movie.id) {
+      return `/movies/${movie.id}`;
+    }
+    const tmdb = movie.provider_ids?.tmdb;
+    if (tmdb) return `/movies/tmdb:${tmdb}`;
+    return null;
   }
 
   function renderStatusBadge(movie: UnifiedMovie, key: string) {
@@ -296,70 +346,99 @@ export function MoviesClient({
       {searchError ? <p className="error">{searchError}</p> : null}
 
       {!showingSearch && recentlyWatched.length > 0 && (
-        <section className="recent-section" aria-label="Recently watched, unrated">
-          <h2 className="recent-heading">Recently watched</h2>
-          <div className="recent-row">
-            {recentlyWatched.map((movie) => {
-              const poster = movie.poster ?? null;
-              const ck = movie.id ? `jellyfin:${movie.id}` : null;
-              const isCandidate = ck ? candidateSet.has(ck) : false;
-              return (
-                <article className="movie-card" key={movie.id ?? movie.title}>
-                  {movie.id ? (
-                    <a href={`/movies/${movie.id}`} className="poster-link" aria-label={movie.title}>
-                      {poster ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={poster} alt={`${movie.title} poster`} loading="lazy" />
-                      ) : (
-                        <span className="no-poster">No poster</span>
-                      )}
-                      <div className="card-hover-info" aria-hidden="true">
-                        <span className="card-title">{movie.title}</span>
-                        {movie.year && <span className="card-year">{movie.year}</span>}
-                      </div>
-                    </a>
-                  ) : (
-                    <div className="poster-link" aria-label={movie.title}>
-                      {poster ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={poster} alt={`${movie.title} poster`} loading="lazy" />
-                      ) : (
-                        <span className="no-poster">No poster</span>
-                      )}
-                      <div className="card-hover-info" aria-hidden="true">
-                        <span className="card-title">{movie.title}</span>
-                        {movie.year && <span className="card-year">{movie.year}</span>}
-                      </div>
-                    </div>
-                  )}
+        <section className="recent-section" aria-label="Rate these — unrated movies">
+          <h2 className="recent-heading">Rate these</h2>
+          <div className="recent-scroll-wrap">
+            {canScrollLeft && (
+              <button
+                type="button"
+                className="scroll-arrow left"
+                onClick={handleScrollLeft}
+                aria-label="Scroll left"
+              >
+                ‹
+              </button>
+            )}
+            <div className="recent-row" ref={scrollRef}>
+              {recentlyWatched.map((movie) => {
+                const poster = movie.poster ?? null;
+                const movieId = computeMovieId(movie);
+                const ck = movie.id ? `jellyfin:${movie.id}` : null;
+                const isCandidate = ck ? candidateSet.has(ck) : false;
+                const detailUrl = movieId
+                  ? (movie.provider_ids?.tmdb
+                      ? `/movies/tmdb:${movie.provider_ids.tmdb}`
+                      : `/movies/${movie.id}`)
+                  : null;
 
-                  {movie.id && (
-                    <form className="badge-form" action={toggleWheelCandidate}>
-                      <input type="hidden" name="source" value="jellyfin" />
-                      <input type="hidden" name="externalId" value={movie.id} />
-                      <input type="hidden" name="title" value={movie.title} />
-                      <input type="hidden" name="poster" value={poster ?? ""} />
-                      <button
-                        type="submit"
-                        className={`plus-badge${isCandidate ? " active" : ""}`}
-                        aria-label={isCandidate ? "Remove from wheel" : "Add to wheel"}
-                      >
-                        {isCandidate ? "✓" : "+"}
-                      </button>
-                    </form>
-                  )}
+                return (
+                  <article className="movie-card" key={movie.id ?? movie.title}>
+                    {detailUrl ? (
+                      <a href={detailUrl} className="poster-link" aria-label={movie.title}>
+                        {poster ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={poster} alt={`${movie.title} poster`} loading="lazy" />
+                        ) : (
+                          <span className="no-poster">No poster</span>
+                        )}
+                        <div className="card-hover-info" aria-hidden="true">
+                          <span className="card-title">{movie.title}</span>
+                          {movie.year && <span className="card-year">{movie.year}</span>}
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="poster-link" aria-label={movie.title}>
+                        {poster ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={poster} alt={`${movie.title} poster`} loading="lazy" />
+                        ) : (
+                          <span className="no-poster">No poster</span>
+                        )}
+                        <div className="card-hover-info" aria-hidden="true">
+                          <span className="card-title">{movie.title}</span>
+                          {movie.year && <span className="card-year">{movie.year}</span>}
+                        </div>
+                      </div>
+                    )}
 
-                  {movie.id && (
-                    <form className="hide-recent-form" action={hideFromRecent}>
-                      <input type="hidden" name="jellyfinItemId" value={movie.id} />
-                      <button type="submit" className="hide-recent-btn" aria-label="Hide from recently watched">
-                        ×
-                      </button>
-                    </form>
-                  )}
-                </article>
-              );
-            })}
+                    {movie.id && (
+                      <form className="badge-form" action={toggleWheelCandidate}>
+                        <input type="hidden" name="source" value="jellyfin" />
+                        <input type="hidden" name="externalId" value={movie.id} />
+                        <input type="hidden" name="title" value={movie.title} />
+                        <input type="hidden" name="poster" value={poster ?? ""} />
+                        <button
+                          type="submit"
+                          className={`plus-badge${isCandidate ? " active" : ""}`}
+                          aria-label={isCandidate ? "Remove from wheel" : "Add to wheel"}
+                        >
+                          {isCandidate ? "✓" : "+"}
+                        </button>
+                      </form>
+                    )}
+
+                    {movieId && (
+                      <form className="hide-recent-form" action={hideFromRecent}>
+                        <input type="hidden" name="movieId" value={movieId} />
+                        <button type="submit" className="hide-recent-btn" aria-label="Hide from Rate these">
+                          ×
+                        </button>
+                      </form>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+            {canScrollRight && (
+              <button
+                type="button"
+                className="scroll-arrow right"
+                onClick={handleScrollRight}
+                aria-label="Scroll right"
+              >
+                ›
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -367,15 +446,15 @@ export function MoviesClient({
       <section className="grid" aria-label="Movie library">
         {displayItems.map((movie) => {
           const poster = movie.poster ?? null;
-          const isLibrary = (movie.library_state ?? "in_library") === "in_library";
           const key = `${movie.id ?? "no-id"}:${movie.title}`;
+          const detailUrl = movieDetailUrl(movie);
 
           return (
             <article className="movie-card" key={key}>
               <div className="status-badge-wrap">{renderStatusBadge(movie, key)}</div>
 
-              {isLibrary && movie.id ? (
-                <a href={`/movies/${movie.id}`} className="poster-link" aria-label={movie.title}>
+              {detailUrl ? (
+                <a href={detailUrl} className="poster-link" aria-label={movie.title}>
                   {poster ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={poster} alt={`${movie.title} poster`} loading="lazy" />

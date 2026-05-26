@@ -34,12 +34,12 @@ export async function hideFromRecent(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect("/login");
 
-  const jellyfinItemId = String(formData.get("jellyfinItemId") ?? "").trim();
-  if (!jellyfinItemId) throw new Error("Missing jellyfinItemId.");
+  const movieId = String(formData.get("movieId") ?? "").trim();
+  if (!movieId) throw new Error("Missing movieId.");
 
   await prisma.movieRating.upsert({
-    where: { jellyfinItemId },
-    create: { jellyfinItemId, hiddenFromRecent: true },
+    where: { movieId },
+    create: { movieId, hiddenFromRecent: true },
     update: { hiddenFromRecent: true },
   });
 

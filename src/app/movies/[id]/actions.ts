@@ -6,7 +6,7 @@ import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function saveStarRating(
-  jellyfinItemId: string,
+  movieId: string,
   field: "johnRating" | "airaRating",
   value: number | null
 ) {
@@ -18,9 +18,9 @@ export async function saveStarRating(
   }
 
   await prisma.movieRating.upsert({
-    where: { jellyfinItemId },
+    where: { movieId },
     create: {
-      jellyfinItemId,
+      movieId,
       johnRating: field === "johnRating" ? value : undefined,
       airaRating: field === "airaRating" ? value : undefined,
     },
@@ -30,6 +30,6 @@ export async function saveStarRating(
     },
   });
 
-  revalidatePath(`/movies/${jellyfinItemId}`);
+  revalidatePath(`/movies/${movieId}`);
   revalidatePath("/movies");
 }
